@@ -1,5 +1,6 @@
 import typer
 from imap_tools import MailBox
+from rich.progress import track
 
 
 def main(
@@ -20,6 +21,8 @@ def main(
         folders = [source_folder]
 
     for folder in folders:
+        if not source_box.folder.exists(folder):
+            raise typer.Exit()
         source_box.folder.set(folder)
 
         folder_status = source_box.folder.status(folder)
@@ -30,9 +33,8 @@ def main(
             destination_box.folder.create(folder)
 
         print(f"Importing {msg_count} messages from {folder}...")
-        with typer.progressbar(source_box.fetch(), length=msg_count) as progress:
-            for msg in progress:
-                destination_box.append(msg, folder)
+        for msg in track(source_box.fetch(), description="Importing...", total=msg_count):
+            destination_box.append(msg, folder)
 
 
 if __name__ == "__main__":
